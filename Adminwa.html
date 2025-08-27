@@ -1,67 +1,70 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Admin Panel (Secure)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel</title>
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
   <style>
-    body { font-family: Arial; padding: 20px; background: #f1faee; }
-    h1 { color: #1d3557; }
-    input, select, button { margin: 6px; padding: 10px; border-radius: 6px; border: 1px solid #ccc; }
-    button { background: #457b9d; color: white; border: none; cursor: pointer; }
+    body { font-family: Arial; padding: 20px; background: #f1faee; margin: 0; }
+    h1 { color: #1d3557; text-align: center; }
+    h2 { color: #1d3557; margin-top: 20px; }
+    input, select, button {
+      margin: 6px 0; padding: 12px; border-radius: 6px; border: 1px solid #ccc;
+      width: 100%; max-width: 400px; box-sizing: border-box; font-size: 16px;
+    }
+    button { background: #457b9d; color: white; border: none; cursor: pointer; font-weight: bold; }
     button:hover { background: #1d3557; }
-    .order-list { margin-top: 20px; }
-    .order { background: white; padding: 12px; margin: 8px; border-radius: 10px; box-shadow: 0 3px 5px rgba(0,0,0,0.1); }
-    .order p { margin: 4px 0; }
-    .copy-btn { background: #06d6a0; border: none; padding: 6px 10px; border-radius: 5px; color: white; cursor: pointer; font-size: 12px; }
-    .delete-btn { background: #e63946; border: none; padding: 6px 10px; border-radius: 5px; color: white; cursor: pointer; font-size: 12px; margin-left: 8px; }
-    .timer { color: red; font-weight: bold; }
+    .order { background: white; padding: 15px; margin: 10px 0; border-radius: 10px; box-shadow: 0 3px 5px rgba(0,0,0,0.1); }
+    .order p { margin: 6px 0; font-size: 15px; }
+    .copy-btn { background: #06d6a0; } .delete-btn { background: #e63946; margin-left: 6px; }
     #loginSection, #panel { display: none; }
+    /* Custom Alert */
+    #customAlert { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); justify-content: center; align-items: center; z-index: 1000; }
+    #customAlert .alert-box { background: white; padding: 20px; border-radius: 12px; text-align: center; max-width: 350px; width: 100%; }
   </style>
 </head>
 <body>
-  <h1>🛠️ Admin Panel (Secure)</h1>
+  <h1>🍔 Order Admin Panel</h1>
 
-  <!-- 🔐 Login Section -->
+  <!-- Login Section -->
   <div id="loginSection">
     <h2>🔑 Admin Login</h2>
-    <input type="email" id="loginEmail" placeholder="Email">
-    <input type="password" id="loginPassword" placeholder="Password">
-    <button onclick="login()">➡️ Login</button>
+    <input type="email" id="emailInput" placeholder="Enter Email">
+    <input type="password" id="passwordInput" placeholder="Enter Password">
+    <button onclick="login()">Login</button>
   </div>
 
-  <!-- 📋 Panel Section -->
+  <!-- Panel Section -->
   <div id="panel">
-    <button onclick="logout()">🚪 Logout</button>
-
     <h2>Add New Order</h2>
-    <input type="text" id="name" placeholder="Customer Name">
-    <input type="text" id="product" placeholder="Product">
+    <input type="text" id="customerName" placeholder="Customer Name">
+    <input type="text" id="orderItem" placeholder="Order Item">
+    <select id="status">
+      <option value="Pending">Pending</option>
+      <option value="Cooking">Cooking</option>
+      <option value="Ready">Ready</option>
+      <option value="Delivered">Delivered</option>
+    </select>
     <button onclick="addOrder()">➕ Add Order</button>
 
-    <h2>Update Status</h2>
-    <input type="text" id="orderId" placeholder="Order ID">
-    <select id="status">
-      <option>Processing</option>
-      <option>Preparing</option>
-      <option>Completed</option>
-    </select>
-    <button onclick="updateOrder()">🔄 Update</button>
-
-    <h2>📋 Current Orders</h2>
+    <h2>All Orders</h2>
     <div class="order-list" id="orderList"></div>
+    <button onclick="logout()">🚪 Logout</button>
   </div>
 
-  <!-- 🔊 Popup Sound -->
-  <audio id="notifySound">
-    <source src="https://www.soundjay.com/buttons/sounds/beep-07.mp3" type="audio/mpeg">
-  </audio>
+  <!-- Custom Alert -->
+  <div id="customAlert"><div class="alert-box">
+    <h3 id="alertTitle">Alert</h3>
+    <p id="alertMessage"></p>
+    <button onclick="closeAlert()">OK</button>
+  </div></div>
 
   <script>
-    // ✅ Firebase Config
+    // 🔥 Firebase Config
     const firebaseConfig = {
       apiKey: "AIzaSyDisqHhrRh__ioNlGZHRj7Wva_TsysLnh0",
       authDomain: "order-5cd0b.firebaseapp.com",
@@ -72,128 +75,108 @@
       appId: "1:17873031922:web:f1ae52edfd8cc8cabd766b",
       measurementId: "G-R5L4RW6F95"
     };
-
-    // Firebase Init
     firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
     const auth = firebase.auth();
+    const db = firebase.database();
 
-    // 🔑 Login
+    // ✅ Login with Firebase Auth
     function login() {
-      const email = document.getElementById("loginEmail").value;
-      const password = document.getElementById("loginPassword").value;
+      let email = document.getElementById("emailInput").value.trim();
+      let password = document.getElementById("passwordInput").value.trim();
       auth.signInWithEmailAndPassword(email, password)
         .then(() => {
-          alert("✅ Login Successful!");
+          document.getElementById("loginSection").style.display = "none";
+          document.getElementById("panel").style.display = "block";
+          loadOrders();
         })
-        .catch(err => alert("❌ " + err.message));
+        .catch(err => showAlert("Login Failed", err.message));
     }
 
-    // 🚪 Logout
+    // ✅ Logout
     function logout() {
-      auth.signOut();
-      alert("👋 Logged out!");
+      auth.signOut().then(() => {
+        document.getElementById("panel").style.display = "none";
+        document.getElementById("loginSection").style.display = "block";
+      });
     }
 
-    // 🔄 Auth State Change
+    // ✅ Add Order
+    function addOrder() {
+      let name = document.getElementById("customerName").value.trim();
+      let item = document.getElementById("orderItem").value.trim();
+      let status = document.getElementById("status").value;
+      if (!name || !item) { showAlert("Missing Info", "⚠️ Please fill all fields."); return; }
+      db.ref("orders").push({ name, item, status, time: new Date().toLocaleTimeString() });
+      document.getElementById("customerName").value = "";
+      document.getElementById("orderItem").value = "";
+      showAlert("Success", "✅ Order Added Successfully!");
+    }
+
+    // ✅ Load Orders
+    function loadOrders() {
+      db.ref("orders").on("value", snapshot => {
+        let orderList = document.getElementById("orderList");
+        orderList.innerHTML = "";
+        snapshot.forEach(child => {
+          let id = child.key, order = child.val();
+          orderList.innerHTML += `
+            <div class="order">
+              <p><b>👤 ${order.name}</b></p>
+              <p>🍴 ${order.item}</p>
+              <p>📌 Status: <b>${order.status}</b></p>
+              <p>⏰ ${order.time}</p>
+              <button class="copy-btn" onclick="copyOrder('${order.name}', '${order.item}', '${order.status}')">📋 Copy</button>
+              <button class="delete-btn" onclick="deleteOrder('${id}')">🗑 Delete</button>
+              <br><br>
+              <select onchange="updateStatus('${id}', this.value)">
+                <option value="Pending" ${order.status=="Pending"?"selected":""}>Pending</option>
+                <option value="Cooking" ${order.status=="Cooking"?"selected":""}>Cooking</option>
+                <option value="Ready" ${order.status=="Ready"?"selected":""}>Ready</option>
+                <option value="Delivered" ${order.status=="Delivered"?"selected":""}>Delivered</option>
+              </select>
+            </div>
+          `;
+        });
+      });
+    }
+
+    // ✅ Copy Order
+    function copyOrder(name, item, status) {
+      navigator.clipboard.writeText(`👤 ${name}\n🍴 ${item}\n📌 Status: ${status}`);
+      showAlert("Copied!", "✅ Order copied to clipboard.");
+    }
+
+    // ✅ Delete Order
+    function deleteOrder(id) {
+      db.ref("orders/" + id).remove();
+      showAlert("Deleted", "❌ Order deleted successfully.");
+    }
+
+    // ✅ Update Status
+    function updateStatus(id, newStatus) {
+      db.ref("orders/" + id).update({ status: newStatus });
+      showAlert("Updated", "📌 Status changed to " + newStatus);
+    }
+
+    // ✅ Custom Alert
+    function showAlert(title, msg) {
+      document.getElementById("alertTitle").innerText = title;
+      document.getElementById("alertMessage").innerText = msg;
+      document.getElementById("customAlert").style.display = "flex";
+    }
+    function closeAlert() { document.getElementById("customAlert").style.display = "none"; }
+
+    // ✅ Auto-login check
     auth.onAuthStateChanged(user => {
       if (user) {
         document.getElementById("loginSection").style.display = "none";
         document.getElementById("panel").style.display = "block";
+        loadOrders();
       } else {
-        document.getElementById("loginSection").style.display = "block";
         document.getElementById("panel").style.display = "none";
+        document.getElementById("loginSection").style.display = "block";
       }
     });
-
-    // ➕ Add New Order
-    function addOrder() {
-      const name = document.getElementById("name").value.trim();
-      const product = document.getElementById("product").value.trim();
-      if (!name || !product) { alert("⚠️ Name aur Product dono daalo!"); return; }
-      const newRef = db.ref("orders").push();
-      newRef.set({ name, product, status: "Processing" });
-      alert("✅ Order Added! Order ID: " + newRef.key);
-      document.getElementById("name").value = "";
-      document.getElementById("product").value = "";
-    }
-
-    // 🔄 Update Status
-    function updateOrder() {
-      const orderId = document.getElementById("orderId").value.trim();
-      const status = document.getElementById("status").value;
-      if (!orderId) { alert("⚠️ Order ID daalo!"); return; }
-      db.ref("orders/" + orderId).update({ status })
-        .then(() => alert("🔄 Status Updated!"))
-        .catch(err => alert("❌ Error: " + err));
-    }
-
-    // 🗑️ Delete Order
-    function deleteOrder(id) {
-      if (confirm("⚠️ Kya aap sure ho is order ko delete karna chahte ho?")) {
-        db.ref("orders/" + id).remove()
-          .then(() => alert("🗑️ Order Deleted!"))
-          .catch(err => alert("❌ Error: " + err));
-      }
-    }
-
-    // 📋 Show Orders + Timer + Sound
-    const list = document.getElementById("orderList");
-    const notifySound = document.getElementById("notifySound");
-
-    db.ref("orders").on("value", snap => {
-      list.innerHTML = "";
-      snap.forEach(orderSnap => {
-        const order = orderSnap.val();
-        const id = orderSnap.key;
-        let timerHtml = "";
-
-        // ✅ Agar status "Completed" hai to timer aur sound
-        if (order.status === "Completed") {
-          timerHtml = `<p class="timer" id="timer-${id}">⏳ 1:00</p>`;
-          startTimer(id);
-          notifySound.play();
-        }
-
-        list.innerHTML += `
-          <div class="order" id="order-${id}">
-            <p><b>ID:</b> ${id} 
-              <button class="copy-btn" onclick="copyId('${id}')">📋 Copy</button>
-              <button class="delete-btn" onclick="deleteOrder('${id}')">🗑️ Delete</button>
-            </p>
-            <p><b>Name:</b> ${order.name}</p>
-            <p><b>Product:</b> ${order.product}</p>
-            <p><b>Status:</b> ${order.status}</p>
-            ${timerHtml}
-          </div>
-        `;
-      });
-    });
-
-    // 📋 Copy Order ID
-    function copyId(id) {
-      navigator.clipboard.writeText(id);
-      alert("📋 Copied Order ID: " + id);
-    }
-
-    // ⏳ Start 1 Minute Timer
-    function startTimer(orderId) {
-      let timeLeft = 60; // 60 sec
-      const timerEl = document.getElementById("timer-" + orderId);
-      if (!timerEl) return;
-
-      const countdown = setInterval(() => {
-        if (timeLeft <= 0) {
-          clearInterval(countdown);
-          timerEl.innerHTML = "✅ Done!";
-        } else {
-          let mins = Math.floor(timeLeft / 60);
-          let secs = timeLeft % 60;
-          timerEl.innerHTML = `⏳ ${mins}:${secs < 10 ? "0" : ""}${secs}`;
-          timeLeft--;
-        }
-      }, 1000);
-    }
   </script>
 </body>
 </html>
