@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Orders - Viewing Page</title>
+  <style>
+    body { 
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; 
+      background: #f4f6fb; margin: 0; padding: 0; 
+    }
+    h2 { 
+      text-align: center; background: #1d3557; 
+      color: white; padding: 15px; margin: 0; 
+      letter-spacing: 1px; 
+    }
+
+    .orders { padding: 20px; max-width: 700px; margin: auto; }
+    .order { 
+      background: white; margin: 15px 0; padding: 20px; 
+      border-radius: 12px; box-shadow: 0 3px 8px rgba(0,0,0,0.1); 
+      transition: 0.3s; position: relative;
+    }
+    .order:hover { transform: translateY(-3px); }
+    
+    .order h3 { margin: 0 0 8px; color: #1d3557; font-size: 20px; }
+    .details { margin: 5px 0; color: #333; }
+    
+    .status { 
+      font-weight: bold; padding: 6px 12px; border-radius: 8px; 
+      display: inline-block; margin-top: 10px; font-size: 14px;
+    }
+    .status.processing { background: #ffdd57; color: #856404; }
+    .status.preparing { background: #457b9d; color: white; }
+    .status.completed { background: #06d6a0; color: white; }
+
+    .timer {
+      position: absolute; top: 20px; right: 20px;
+      background: #e63946; color: white;
+      padding: 5px 12px; border-radius: 8px;
+      font-size: 14px; font-weight: bold;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <h2>📋 Live Orders</h2>
+  <div class="orders" id="orders"></div>
+
+  <!-- 🔊 Sound -->
+  <audio id="completeSound">
+    <source src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" type="audio/ogg">
+  </audio>
+
+  <!-- ✅ Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyDisqHhrRh__ioNlGZHRj7Wva_TsysLnh0",
+      authDomain: "order-5cd0b.firebaseapp.com",
+      databaseURL: "https://order-5cd0b-default-rtdb.firebaseio.com",
+      projectId: "order-5cd0b",
+      storageBucket: "order-5cd0b.firebasestorage.app",
+      messagingSenderId: "17873031922",
+      appId: "1:17873031922:web:f1ae52edfd8cc8cabd766b",
+      measurementId: "G-R5L4RW6F95"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const ordersRef = firebase.database().ref("orders");
+
+    const timers = {}; 
+    const notified = {};
+
+    ordersRef.on("value", snapshot => {
+      const ordersDiv = document.getElementById("orders");
+      ordersDiv.innerHTML = "";
+
+      snapshot.forEach(child => {
+        const order = child.val();
+        const id = child.key;
+        if (!order) return;
+
+        let statusClass = order.status ? order.status.toLowerCase() : "processing";
+
+        let div = document.createElement("div");
+        div.className = "order";
+        div.innerHTML = `
+          <h3>${order.name || "Unknown"}</h3>
+          <p class="details">🍔 <b>Product:</b> ${order.product || ""}</p>
+          <span class="status ${statusClass}">${order.status || "Processing"}</span>
+          <div class="timer" id="timer-${id}"></div>
+        `;
+        ordersDiv.appendChild(div);
+
+        // ✅ Agar order complete hai aur notify nahi hua
+        if (order.status === "Completed" && !notified[id]) {
+          notified[id] = true;
+
+          let timerDiv = document.getElementById(`timer-${id}`);
+          let remaining = 60; 
+          timerDiv.style.display = "inline-block";
+          timerDiv.textContent = `⏳ ${remaining}s`;
+
+          let sound = document.getElementById("completeSound");
+          sound.play();
+
+          timers[id] = setInterval(() => {
+            remaining--;
+            timerDiv.textContent = `⏳ ${remaining}s`;
+            if (remaining <= 0) {
+              clearInterval(timers[id]);
+              div.remove();
+            }
+          }, 1000);
+        }
+      });
+    });
+  </script>
+</body>
+</html>
