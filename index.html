@@ -95,7 +95,6 @@
     // 🔔 Toggle Sound ON/OFF
     toggleBtn.addEventListener("click", () => {
       if (!soundEnabled) {
-        // pehli baar click -> unlock karna padega
         sound.play().catch(()=>{});
         sound.pause();
         soundEnabled = true;
@@ -124,7 +123,7 @@
         div.className = "order";
         div.innerHTML = `
           <h3>${order.name || "Unknown"}</h3>
-          <p class="details">🍔 <b>Product:</b> ${order.product || ""}</p>
+          <p class="details">🍔 <b>Product:</b> ${order.item || ""}</p>
           <span class="status ${statusClass}">${order.status || "Processing"}</span>
           <div class="timer" id="timer-${id}"></div>
         `;
