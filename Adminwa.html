@@ -128,9 +128,9 @@
               <button class="delete-btn" onclick="deleteOrder('${id}')">🗑 Delete</button>
               <br><br>
               <select onchange="updateStatus('${id}', this.value)">
-                <option value="Processing" ${order.status=="Cooking"?"selected":""}>Cooking</option>
-                <option value="Processing" ${order.status=="Ready"?"selected":""}>Ready</option>
-                <option value="Completed" ${order.status=="Delivered"?"selected":""}>Delivered</option>
+                <option value="Processing" ${order.status=="Processing"?"selected":""}>Processing</option>
+                <option value="Preparing" ${order.status=="Preparing"?"selected":""}>Preparing</option>
+                <option value="Completed" ${order.status=="Completed"?"selected":""}>Completed</option>
               </select>
             </div>
           `;
