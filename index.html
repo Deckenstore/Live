@@ -48,9 +48,7 @@
   <div class="orders" id="orders"></div>
 
   <!-- 🔊 Sound -->
-  <audio id="completeSound">
-    <source src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" type="audio/ogg">
-  </audio>
+  <audio id="completeSound" src="sqiud notification.mp3" preload="auto"></audio>
 
   <!-- ✅ Firebase -->
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
@@ -103,8 +101,10 @@
           timerDiv.style.display = "inline-block";
           timerDiv.textContent = `⏳ ${remaining}s`;
 
+          // 🔊 Sound play
           let sound = document.getElementById("completeSound");
-          sound.play();
+          sound.currentTime = 0;
+          sound.play().catch(err => console.log("Autoplay blocked:", err));
 
           timers[id] = setInterval(() => {
             remaining--;
