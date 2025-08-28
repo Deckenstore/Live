@@ -41,10 +41,27 @@
       font-size: 14px; font-weight: bold;
       display: none;
     }
+
+    #toggleSound {
+      display: block;
+      margin: 15px auto;
+      padding: 10px 20px;
+      background: #06d6a0;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
   <h2>📋 Live Orders</h2>
+
+  <!-- Button for enabling/disabling sound -->
+  <button id="toggleSound">🔔 Enable Sound</button>
+
   <div class="orders" id="orders"></div>
 
   <!-- 🔊 Sound -->
@@ -70,7 +87,28 @@
 
     const timers = {}; 
     const notified = {};
+    let soundEnabled = false;
 
+    const toggleBtn = document.getElementById("toggleSound");
+    const sound = document.getElementById("completeSound");
+
+    // 🔔 Toggle Sound ON/OFF
+    toggleBtn.addEventListener("click", () => {
+      if (!soundEnabled) {
+        // pehli baar click -> unlock karna padega
+        sound.play().catch(()=>{});
+        sound.pause();
+        soundEnabled = true;
+        toggleBtn.textContent = "🔕 Disable Sound";
+        alert("✅ Sound enabled! Ab se order complete hote hi sound bajega.");
+      } else {
+        soundEnabled = false;
+        toggleBtn.textContent = "🔔 Enable Sound";
+        alert("❌ Sound disabled.");
+      }
+    });
+
+    // 🔥 Firebase listener
     ordersRef.on("value", snapshot => {
       const ordersDiv = document.getElementById("orders");
       ordersDiv.innerHTML = "";
@@ -101,10 +139,11 @@
           timerDiv.style.display = "inline-block";
           timerDiv.textContent = `⏳ ${remaining}s`;
 
-          // 🔊 Sound play
-          let sound = document.getElementById("completeSound");
-          sound.currentTime = 0;
-          sound.play().catch(err => console.log("Autoplay blocked:", err));
+          // 🔊 Sound bajao agar enabled hai
+          if (soundEnabled) {
+            sound.currentTime = 0;
+            sound.play().catch(err => console.log("Autoplay blocked:", err));
+          }
 
           timers[id] = setInterval(() => {
             remaining--;
